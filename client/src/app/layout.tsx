@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import "./globals.css";
 import { Toaster } from "sonner";
+// @ts-ignore
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Your Name — Full Stack Developer",

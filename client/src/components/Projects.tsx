@@ -4,177 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ExternalLink, Github } from "lucide-react";
+import { projects } from "@/data/projects";
 
-export const projects = [
-  {
-    title: "Restaurant Management System",
-    description: "Full-stack restaurant management platform...",
-    image: "/images/profile.jpeg",
-    stack: ["Next.js", "TypeScript", "Prisma", "PostgreSQL"],
-    liveUrl: "",
-    codeUrl: "",
-    slug: "restaurant-management",
-    category: "Full Stack",
-    features: [
-      {
-        title: "🔐 JWT Authentication",
-        description: "Secure login with role-based authorization.",
-      },
-      {
-        title: "💳 Payment",
-        description: "SSLCommerz / Stripe integration.",
-      },
-      {
-        title: "📊 Dashboard",
-        description: "Separate Admin & User Dashboard.",
-      },
-      {
-        title: "⚡ Performance",
-        description: "Fast loading & responsive UI.",
-      },
-    ],
-  },
-  {
-    title: "Project Two",
-    description: "Description for project two...",
-    image: "/images/profile.jpeg",
-    stack: ["React", "Node.js", "MongoDB"],
-    liveUrl: "",
-    codeUrl: "",
-    slug: "project-two",
-    category: "Frontend",
-    features: [
-      {
-        title: "🔐 JWT Authentication",
-        description: "Secure login with role-based authorization.",
-      },
-      {
-        title: "💳 Payment",
-        description: "SSLCommerz / Stripe integration.",
-      },
-      {
-        title: "📊 Dashboard",
-        description: "Separate Admin & User Dashboard.",
-      },
-      {
-        title: "⚡ Performance",
-        description: "Fast loading & responsive UI.",
-      },
-    ],
-  },
-  {
-    title: "Project Three",
-    description: "Description for project three...",
-    image: "/images/profile.jpeg",
-    stack: ["Next.js", "Tailwind"],
-    liveUrl: "",
-    codeUrl: "",
-    slug: "project-three",
-    category: "Frontend",
-    features: [
-      {
-        title: "🔐 JWT Authentication",
-        description: "Secure login with role-based authorization.",
-      },
-      {
-        title: "💳 Payment",
-        description: "SSLCommerz / Stripe integration.",
-      },
-      {
-        title: "📊 Dashboard",
-        description: "Separate Admin & User Dashboard.",
-      },
-      {
-        title: "⚡ Performance",
-        description: "Fast loading & responsive UI.",
-      },
-    ],
-  },
-  {
-    title: "Project Three",
-    description: "Description for project three...",
-    image: "/images/profile.jpeg",
-    stack: ["Next.js", "Tailwind"],
-    liveUrl: "",
-    codeUrl: "",
-    slug: "project-three",
-    category: "Frontend",
-    features: [
-      {
-        title: "🔐 JWT Authentication",
-        description: "Secure login with role-based authorization.",
-      },
-      {
-        title: "💳 Payment",
-        description: "SSLCommerz / Stripe integration.",
-      },
-      {
-        title: "📊 Dashboard",
-        description: "Separate Admin & User Dashboard.",
-      },
-      {
-        title: "⚡ Performance",
-        description: "Fast loading & responsive UI.",
-      },
-    ],
-  },
-  {
-    title: "Project Three",
-    description: "Description for project three...",
-    image: "/images/profile.jpeg",
-    stack: ["Next.js", "Tailwind"],
-    liveUrl: "",
-    codeUrl: "",
-    slug: "project-three",
-    category: "Frontend",
-    features: [
-      {
-        title: "🔐 JWT Authentication",
-        description: "Secure login with role-based authorization.",
-      },
-      {
-        title: "💳 Payment",
-        description: "SSLCommerz / Stripe integration.",
-      },
-      {
-        title: "📊 Dashboard",
-        description: "Separate Admin & User Dashboard.",
-      },
-      {
-        title: "⚡ Performance",
-        description: "Fast loading & responsive UI.",
-      },
-    ],
-  },
-  {
-    title: "Project Three",
-    description: "Description for project three...",
-    image: "/images/profile.jpeg",
-    stack: ["Next.js", "Tailwind"],
-    liveUrl: "",
-    codeUrl: "",
-    slug: "project-three",
-    category: "Frontend",
-    features: [
-      {
-        title: "🔐 JWT Authentication",
-        description: "Secure login with role-based authorization.",
-      },
-      {
-        title: "💳 Payment",
-        description: "SSLCommerz / Stripe integration.",
-      },
-      {
-        title: "📊 Dashboard",
-        description: "Separate Admin & User Dashboard.",
-      },
-      {
-        title: "⚡ Performance",
-        description: "Fast loading & responsive UI.",
-      },
-    ],
-  },
-];
+
 
 export default function Projects() {
   return (
@@ -248,7 +80,7 @@ export default function Projects() {
               </div>
               <div className="flex items-center justify-between border-t border-border p-6">
                 <Link
-                  href={project.liveUrl}
+                  href={project.liveUrl ?? '#'}
                   target="_blank"
                   className="flex items-center gap-2 text-sm font-medium text-red-400 transition hover:text-red-300"
                 >
@@ -256,7 +88,7 @@ export default function Projects() {
                 </Link>
 
                 <Link
-                  href={project.codeUrl}
+                  href={project.codeUrl ?? '#'}
                   target="_blank"
                   className="flex items-center gap-2 text-sm font-medium text-red-400 transition hover:text-red-300"
                 >

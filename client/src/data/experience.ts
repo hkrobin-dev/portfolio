@@ -10,15 +10,17 @@ export type ExperienceItem = {
 
 export const experience: ExperienceItem[] = [
   {
-    role: "Your Role",
-    company: "Company Name",
-    companyUrl: "https://example.com",
-    location: "City",
-    period: "Jan 2024 - Present",
+    role: "Frontend Developer",
+    company: "Bd Calling Academy",
+    companyUrl: "https://bdcallingacademy.com/",
+    location: "Dhaka",
+    period: "Sep 2025 - Dec 2025",
     points: [
-      "Key responsibility or achievement in this role",
-      "Another measurable impact you had",
+      "Developed responsive web applications using React and TypeScript.",
+      "Built REST APIs using Node.js and Express.js.",
+      "Integrated MongoDB database for managing application data.",
+      "Improved website performance and user experience."
     ],
-    stack: ["React", "TypeScript", "Node.js"],
+    stack: ["React", "TypeScript", "Node.js", "Express.js", "MongoDB"],
   },
 ];

@@ -49,7 +49,6 @@ export default function Navbar() {
             Resume
           </Link>
         </div>
-
       </div>
     </nav>
   );
