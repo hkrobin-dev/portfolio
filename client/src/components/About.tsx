@@ -8,8 +8,13 @@ export default function About() {
   return (
     <section id="about" className="px-6 py-24">
       <div className="mx-auto max-w-content">
-        <h2 className="font-display text-3xl">About Me.</h2>
-        <p className="mt-2 text-muted">Get to know me better</p>
+        <div className="text-center">
+          <h2 className="font-display text-4xl font-bold">
+            ABOUT ME
+          </h2>
+          <p className="mt-2 text-muted">Get to know me</p>
+          <div className="mx-auto mt-3 h-1 w-28 rounded-full bg-orange-500"/>
+        </div>
 
         <div className="mt-10 grid gap-10 md:grid-cols-2 md:items-center">
           {/* Replace with your image */}
