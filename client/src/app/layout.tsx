@@ -4,10 +4,14 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Your Name — Full Stack Developer",
+  title: "Hk's Portfolio",
   description: "Portfolio of Your Name, building web experiences with React and Node.js.",
+  icons: {
+    icon: "/images/profile.jpeg",
+  },
+
   openGraph: {
-    title: "Your Name — Full Stack Developer",
+    title: "Hasan Kabir Robin — Full Stack Developer",
     description: "Portfolio of Your Name, building web experiences with React and Node.js.",
     type: "website",
   },

@@ -13,7 +13,6 @@ export default function Hero() {
 
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#090909] px-6 text-white">
-
       {/* Background Glow */}
       {/* <div className="absolute top-1/3 left-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/15 blur-[120px]" /> */}
 
@@ -37,9 +36,7 @@ export default function Hero() {
         transition={{ duration: 0.5 }}
         className="relative z-10 text-center"
       >
-        <p className="mb-4 text-lg text-gray-400">
-          👋 Hey, I'm
-        </p>
+        <p className="mb-4 text-lg text-gray-400">👋 Hey, I'm</p>
 
         <h1 className="text-6xl font-extrabold tracking-tight md:text-8xl">
           Hasan Kabir Robin
@@ -52,14 +49,13 @@ export default function Hero() {
         </div>
 
         <p className="mx-auto mt-8 max-w-2xl text-xl leading-relaxed text-gray-400">
-          I build fast, responsive and scalable web applications with{" "}
-          <span className="text-white font-medium">Next.js</span>,
-          {" "}React, TypeScript, Node.js, Express, PostgreSQL &
-          {" "}Prisma.
+          Specializing in full-stack web architectures, dynamic user interfaces,
+         .{" "}With 
+          <span className="text-white font-medium"> Next.js</span>, React,
+          TypeScript, Node.js, Express, PostgreSQL & Prisma.
         </p>
 
         <div className="mt-12 flex flex-wrap items-center justify-center gap-5">
-
           <Link
             href="#contact"
             className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 px-8 py-4 font-semibold transition hover:scale-105"

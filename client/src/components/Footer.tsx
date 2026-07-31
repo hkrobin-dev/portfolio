@@ -6,19 +6,19 @@ import { Github, Linkedin, Twitter } from "lucide-react";
 const socials = [
   {
     label: "GitHub",
-    url: "https://github.com/yourname",
+    url: "https://github.com/hkrobin-dev/",
     icon: Github,
   },
 
   {
     label: "LinkedIn",
-    url: "https://linkedin.com/in/yourname",
+    url: "https://www.linkedin.com/in/hk-robin/",
     icon: Linkedin,
   },
 
   {
     label: "Twitter",
-    url: "https://x.com/yourname",
+    url: "https://x.com/HkRobin8",
     icon: Twitter,
   },
 ];

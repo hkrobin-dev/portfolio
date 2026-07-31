@@ -3,11 +3,10 @@ import Link from "next/link";
 const links = [
   "Home",
   "About",
-  "Projects",
   "Skills",
+  "Projects",
   "Experience",
   "Blog",
-  "Testimonials",
   "Contact",
 ];
 
@@ -42,7 +41,7 @@ export default function Navbar() {
 
           {/* Resume Button */}
           <Link
-            href="/resume.pdf"
+            href="/FullStack-Hasan-Kabir-Robin.pdf"
             target="_blank"
             className="text-sm font-medium text-red-400 transition hover:text-red-300"
           >
