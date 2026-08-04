@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
   SiJavascript,
   SiTypescript,
@@ -10,9 +11,8 @@ import {
   SiNextdotjs,
   SiReactrouter,
   SiTailwindcss,
-  SiReactquery,
-  SiAxios,
   SiRedux,
+  SiAxios,
   SiNodedotjs,
   SiExpress,
   SiPrisma,
@@ -27,10 +27,12 @@ import {
   SiRender,
   SiNetlify,
   SiJsonwebtokens,
+  SiReactquery,
 } from "react-icons/si";
 
-import { FaDatabase, FaShieldAlt, FaMobileAlt } from "react-icons/fa";
+import { FaDatabase, FaMobileAlt, FaShieldAlt } from "react-icons/fa";
 import { IconType } from "react-icons";
+
 type Skill = {
   name: string;
   icon: IconType;
@@ -40,28 +42,29 @@ type SkillGroup = {
   category: string;
   items: Skill[];
 };
-export const skills = [
+
+const skills: SkillGroup[] = [
   {
     category: "Languages",
     items: [
       { name: "JavaScript", icon: SiJavascript },
       { name: "TypeScript", icon: SiTypescript },
-      { name: "SQL", icon: FaDatabase },
       { name: "HTML5", icon: SiHtml5 },
       { name: "CSS3", icon: SiCss },
       { name: "Python", icon: SiPython },
+      { name: "SQL", icon: FaDatabase },
     ],
   },
   {
     category: "Frontend",
     items: [
-      { name: "React.js", icon: SiReact },
+      { name: "React", icon: SiReact },
       { name: "Next.js", icon: SiNextdotjs },
       { name: "React Router", icon: SiReactrouter },
       { name: "Tailwind CSS", icon: SiTailwindcss },
+      { name: "Redux Toolkit", icon: SiRedux },
       { name: "TanStack Query", icon: SiReactquery },
       { name: "Axios", icon: SiAxios },
-      { name: "Redux Toolkit", icon: SiRedux },
     ],
   },
   {
@@ -98,59 +101,74 @@ export const skills = [
     ],
   },
 ];
+
 export default function Skills() {
   return (
-    <section id="skills" className="px-6 py-24">
-      <div className="mx-auto max-w-content">
+    <section id="skills" className="py-24 px-6">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center">
-          <h2 className="font-display text-4xl font-bold">SKILLS</h2>
-          <p className="mt-2 text-muted">What I can do</p>
+          <span className="rounded-full bg-orange-500/10 border border-orange-500/30 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-orange-400">
+            Skills
+          </span>
 
-          <div className="mx-auto mt-3 h-1 w-28 rounded-full bg-orange-500" />
+          <h2 className="mt-6 text-4xl font-bold">
+            Technical Skills
+          </h2>
+
+          <p className="mt-4 text-muted">
+            Technologies and tools I use to build modern web applications.
+          </p>
         </div>
 
-        <div className="mt-14 flex flex-wrap justify-center gap-10">
-          {skills.map((group) =>
-            group.items.map((item) => {
-              const Icon = item.icon;
+        <div className="mt-16 space-y-10">
+          {skills.map((group) => (
+            <motion.div
+              key={group.category}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="rounded-3xl border border-white/10 bg-surface p-8"
+            >
+              <h3 className="mb-8 text-2xl font-bold text-orange-500">
+                {group.category}
+              </h3>
 
-              return (
-                <div
-                  key={item.name}
-                  className="group relative flex h-24 w-24 items-center justify-center rounded-2xl border border-border bg-surface transition-all duration-300 hover:-translate-y-2"
-                >
-                  <Icon className="h-12 w-12 text-green-500 transition-transform duration-300 group-hover:scale-110" />
+              <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                {group.items.map((skill) => {
+                  const Icon = skill.icon;
 
-                  <span
-                    className="
-            absolute
-            -bottom-8
-            scale-0
-            whitespace-nowrap
-            rounded-md
-            bg-black
-            px-3
-            py-1
-            font-bold
-            text-xs
-            text-white
-            transition
-            duration-300
-            group-hover:scale-100
-          "
-                  >
-                    {item.name}
-                  </span>
-                </div>
-              );
-            }),
-          )}
+                  return (
+                    <motion.div
+                      key={skill.name}
+                      whileHover={{
+                        y: -8,
+                        scale: 1.05,
+                      }}
+                      className="group rounded-2xl border border-white/10 bg-[#111] p-6 text-center transition-all duration-300 hover:border-orange-500"
+                    >
+                      <Icon className="mx-auto text-5xl text-orange-500 transition group-hover:scale-110" />
+
+                      <p className="mt-4 text-sm font-medium">
+                        {skill.name}
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        <p className="mt-20 text-center text-muted">
-          Currently learning:
-          <span className="ml-2 text-orange-500">Docker & DevOps</span>
-        </p>
+        <div className="mt-16 text-center">
+          <p className="text-muted">
+            Currently Learning
+          </p>
+
+          <p className="mt-2 text-lg font-semibold text-orange-500">
+            Docker • DevOps • AWS
+          </p>
+        </div>
       </div>
     </section>
   );

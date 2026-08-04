@@ -19,14 +19,20 @@ export default function Blog() {
         {/* Heading */}
 
         <div className="text-center">
+          <div className="mx-auto max-w-7xl text-center mb-8">
+        
+      <span className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/10 px-5 py-2 text-sm font-semibold uppercase tracking-[0.2em] text-orange-400 items-center">
+        Bolog
+          </span>
+      </div>
           <h2
             className="
           text-5xl
           font-bold
           bg-gradient-to-r
-          from-cyan-400
-          via-blue-500
-          to-purple-500
+          from-orange-400
+          via-amber-500
+          to-red-500
           bg-clip-text
           text-transparent
           "
@@ -37,7 +43,7 @@ export default function Blog() {
           <p className="mt-3 text-lg text-gray-400">
             Sharing my thoughts, learning and experiences.
           </p>
-          <div className="mx-auto mt-3 h-1 w-28 rounded-full bg-orange-500"/>
+          <div className="mx-auto mt-3 h-1 w-28 rounded-full bg-orange-500" />
         </div>
 
         {/* Blog Cards */}
@@ -65,8 +71,9 @@ export default function Blog() {
             transition-all
             duration-500
             hover:-translate-y-3
-            hover:border-cyan-400/40
+            hover:border-orange-500/40
             hover:shadow-xl
+            hover:shadow-orange-500/10
             "
             >
               <div
@@ -79,11 +86,12 @@ export default function Blog() {
                 <span
                   className="
                 rounded-full
-                bg-cyan-400/10
+                bg-orange-500/10
                 px-3
                 py-1
                 text-xs
-                text-cyan-400
+                font-medium
+                text-orange-400
                 "
                 >
                   {blog.category}
@@ -105,7 +113,7 @@ export default function Blog() {
               text-2xl
               font-bold
               text-white
-              group-hover:text-cyan-400
+              group-hover:text-orange-400
               transition
               "
               >
@@ -127,9 +135,9 @@ export default function Blog() {
                 className="
               inline-block
               mt-6
-              text-cyan-400
+              text-orange-400
               font-medium
-              hover:text-cyan-300
+              hover:text-orange-300
               transition
               "
               >
