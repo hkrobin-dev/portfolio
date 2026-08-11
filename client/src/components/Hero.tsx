@@ -126,7 +126,7 @@ export default function Hero() {
           </Link>
 
           <Link
-            href="/FullStack-Hasan-Kabir-Robin .pdf"
+            href="/FullStack-Hasan-Kabir-Robin.pdf"
             target="_blank"
             className="rounded-xl border border-orange-500/40 px-6 py-3 font-semibold text-orange-400 transition-all duration-300 hover:bg-orange-500 hover:text-white"
           >
