@@ -66,7 +66,7 @@ export const projects: Project[] = [
     description:
       "A full-stack restaurant management platform for food ordering, table reservations, menu management, and secure payment.",
 
-    image: "/images/cafeali.png",
+    image: "/images/cafe-ali.png",
 
     stack: [
       "React.js",
@@ -77,7 +77,7 @@ export const projects: Project[] = [
       "Strip"
     ],
 
-    liveUrl: "https://cafe-ali-94d82.web.app/",
+    liveUrl: "https://cafe-ali-client.vercel.app/",
 
     codeUrl: "https://github.com/hkrobin-dev/cafe-ali-client",
 
