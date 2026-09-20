@@ -134,15 +134,40 @@ Admin Panel-এর যেকোনো ইমেজ ফিল্ডে "Upload Im
 - Admin Panel-এ এই ডিটেইল কনটেন্ট (Full Description / Full Content) আলাদা
   ফিল্ড হিসেবে এডিট করা যায়।
 
-## 🚀 Deploy করার সময়
+## 🚀 Backend Deploy করা — Vercel
 
-- Server-এর জন্য একটা PostgreSQL ডাটাবেজ (Neon/Supabase/Railway/নিজস্ব VPS) ও
-  আপলোড করা ছবির জন্য persistent storage লাগবে (তাই server pure serverless
-  platform-এ না দিয়ে VPS/Railway/Render-এ দিন)।
-- Client Vercel-এ normal ভাবেই ডিপ্লয় করা যায় — শুধু `NEXT_PUBLIC_API_URL`-কে
-  আপনার backend-এর পাবলিক URL-এ সেট করে দিন।
+Server-টা এখন Vercel-এর serverless ফরম্যাটে ready (`server/api/index.ts` + `server/vercel.json`)।
+Image upload local ফোল্ডারের বদলে **Vercel Blob** storage ব্যবহার করে, যাতে সব ঠিকঠাক persistent থাকে।
 
-Production build:
+1. **PostgreSQL বানান** — [Neon](https://neon.tech) বা [Supabase](https://supabase.com)-এ ফ্রি একটা
+   Postgres ডাটাবেজ বানিয়ে connection string (`DATABASE_URL`) নিন।
+2. Vercel-এ গিয়ে **New Project** → এই রিপোর ভেতর থেকে **শুধু `server` ফোল্ডারটা** Root Directory
+   হিসেবে সিলেক্ট করুন (client আলাদা project হিসেবে deploy হবে)।
+3. Project বানানোর পর, তার **Storage** ট্যাব থেকে **Blob** স্টোর যোগ করুন — এটা automatic ভাবে
+   `BLOB_READ_WRITE_TOKEN` env variable বসিয়ে দেবে, কিছু করা লাগবে না।
+4. Project **Settings → Environment Variables**-এ বসান:
+   ```
+   DATABASE_URL=...
+   ADMIN_USERNAME=...
+   ADMIN_PASSWORD=...
+   JWT_SECRET=...
+   CLIENT_URL=https://your-frontend-domain.vercel.app
+   ```
+5. Deploy করুন। শেষ হলে Vercel একটা URL দেবে (যেমন `https://your-backend.vercel.app`) — এটাই
+   আপনার backend-এর ঠিকানা।
+6. Client-এর `.env.local`-এ (এবং client-কে Vercel-এ deploy করলে সেখানকার env variable-এও)
+   `NEXT_PUBLIC_API_URL`-কে এই backend URL-এ বসিয়ে দিন।
+
+### লোকাল কম্পিউটারে সেটআপের সময় (Vercel Blob-এর জন্য)
+লোকাল ডেভেলপমেন্টে ছবি আপলোড টেস্ট করতে চাইলে, Vercel প্রজেক্টের Storage ট্যাব থেকে Blob-এর
+`BLOB_READ_WRITE_TOKEN` কপি করে `server/.env`-এ বসান।
+
+### Vercel ছাড়া অন্য কোথাও (Railway/Render/VPS)
+`server/src/index.ts` দিয়ে normal Node সার্ভার হিসেবেই চালানো যায় (`npm run build && npm start`)।
+সেক্ষেত্রেও ছবি Vercel Blob-এই যাবে (যেকোনো প্ল্যাটফর্ম থেকে কাজ করে, শুধু `BLOB_READ_WRITE_TOKEN`
+env variable-এ থাকতে হবে) — তাই hosting platform বদলালেও image upload ভাঙবে না।
+
+Production build (Vercel ছাড়া অন্য hosting-এর জন্য):
 
 ```bash
 # server
