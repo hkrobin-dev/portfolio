@@ -8,12 +8,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0A0A0B",
-        surface: "#131316",
-        border: "#232327",
-        foreground: "#F5F5F4",
-        muted: "#9C9CA3",
-        accent: "#5EEAD4",
+        background: "var(--color-background)",
+        surface: "var(--color-surface)",
+        border: "var(--color-border)",
+        foreground: "var(--color-text)",
+        muted: "var(--color-muted)",
+        accent: "var(--color-accent)",
+        primary: "var(--color-primary)",
+        secondary: "var(--color-secondary)",
       },
       fontFamily: {
         display: ["var(--font-display)"],

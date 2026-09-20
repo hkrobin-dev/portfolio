@@ -2,10 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #f97316;
+  --color-secondary: #ef4444;
+  --color-accent: #f59e0b;
+  --color-background: #090909;
+  --color-surface: #131316;
+  --color-text: #f5f5f4;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-muted: #9c9ca3;
+}
+
+html.light {
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-muted: #5b5b63;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
+/* The navbar floats fixed near the top — without this, jumping to an anchor
+   (e.g. clicking "About" in the navbar) lands content right underneath it. */
+section[id] {
+  scroll-margin-top: 6.5rem;
+}
+
 body {
   @apply bg-background text-foreground;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 999px;
+  opacity: 0.5;
 }
