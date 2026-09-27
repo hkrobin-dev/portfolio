@@ -9,8 +9,19 @@ import { initDatabase } from "../src/db/init";
 // but we still cache the promise per warm instance so a busy function
 // doesn't redo it on every request.
 let dbReady: Promise<void> | null = null;
+
 function ensureDatabaseReady() {
-  if (!dbReady) dbReady = initDatabase();
+  if (!dbReady) {
+    dbReady = initDatabase().catch((err) => {
+      // Don't cache the failure. A cold-start race or a one-off network blip
+      // would otherwise leave this instance permanently broken — every later
+      // request would replay the same rejected promise and 500 until Vercel
+      // happened to recycle the instance. Clearing it lets the next request
+      // retry, which is what you want for a transient database problem.
+      dbReady = null;
+      throw err;
+    });
+  }
   return dbReady;
 }
 

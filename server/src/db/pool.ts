@@ -7,8 +7,27 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Serverless connection budget.
+//
+// On Vercel every warm instance is its own Node process, and each one would
+// otherwise open up to pg's default of 10 connections. A couple of concurrent
+// lambdas can then exhaust the connection limit of a managed provider (Neon,
+// Supabase, Railway) and the API starts failing with
+// "timeout exceeded when trying to connect" — intermittently, and only under
+// traffic, which makes it miserable to debug.
+//
+// One connection per instance is plenty here: the handlers are short single
+// queries, so they queue instead of piling up connections. Raise it with
+// DATABASE_POOL_MAX if you move to a host with a generous connection limit.
+const max = Number(process.env.DATABASE_POOL_MAX) || 1;
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max,
+  // Don't hold a connection open forever — a lambda that idles between
+  // requests should release it so the provider sees fewer live connections.
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
 });
 
 pool.on("error", (err) => {

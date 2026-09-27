@@ -4,14 +4,14 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "lib": ["ES2020"],
-    "outDir": "dist",
-    "rootDir": "src",
+    "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"],
+  "//": "Base config used by the editor and by Vercel when it type-checks the serverless function. It covers BOTH the Express app (src/) and the Vercel entry point (api/), so it deliberately has no rootDir/outDir. Do not build with this file — use tsconfig.build.json.",
+  "include": ["src/**/*.ts", "api/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

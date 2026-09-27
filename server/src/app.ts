@@ -1,5 +1,5 @@
 import "dotenv/config";
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import contactRoutes from "./routes/contact";
 import authRoutes from "./routes/auth";
@@ -35,5 +35,16 @@ app.use("/api/projects", projectsRoutes);
 app.use("/api/blogs", blogsRoutes);
 app.use("/api/testimonials", testimonialsRoutes);
 app.use("/api/upload", uploadRoutes);
+
+// Last-resort error handler. Must keep all four parameters — Express identifies
+// error middleware by arity, so dropping `next` turns this into a normal
+// handler and the error is never reported.
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Unhandled request error:", err);
+  if (res.headersSent) return;
+  res.status(500).json({
+    message: err?.message || "Internal server error.",
+  });
+});
 
 export default app;

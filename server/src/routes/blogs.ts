@@ -1,21 +1,32 @@
 import { Router } from "express";
 import { listBlogPosts, getBlogPostById, replaceBlogPosts } from "../db/blogs";
 import { requireAdmin } from "../middleware/auth";
+import { asyncHandler } from "../middleware/asyncHandler";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
-  res.json(await listBlogPosts());
-});
+router.get(
+  "/",
+  asyncHandler(async (_req, res) => {
+    res.json(await listBlogPosts());
+  })
+);
 
-router.get("/:id", async (req, res) => {
-  const post = await getBlogPostById(req.params.id);
-  if (!post) return res.status(404).json({ message: "Blog post not found." });
-  res.json(post);
-});
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const post = await getBlogPostById(req.params.id);
+    if (!post) return res.status(404).json({ message: "Blog post not found." });
+    res.json(post);
+  })
+);
 
-router.put("/", requireAdmin, async (req, res) => {
-  res.json(await replaceBlogPosts(req.body));
-});
+router.put(
+  "/",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    res.json(await replaceBlogPosts(req.body));
+  })
+);
 
 export default router;
