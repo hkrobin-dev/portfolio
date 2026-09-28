@@ -8,7 +8,6 @@ import { FaGithub, FaLinkedin, FaFacebook, FaTwitter } from "react-icons/fa";
 import { useSite } from "@/context/SiteContext";
 import { useLanguage } from "@/context/LanguageContext";
 import EditFab from "@/components/EditFab";
-import CrescentMoon from "@/components/CrescentMoon";
 
 export default function Hero() {
   const { content } = useSite();
@@ -129,19 +128,17 @@ export default function Hero() {
           )}
         </motion.div>
 
-        {/* Half-moon and a down arrow. Replaces the old row of tech-stack
-            name pills (Next.js, React, TypeScript, Node.js, ...), which read
-            as a list rather than as anything. The arrow is the cue that there
-            is more page below — the same signal the ScrollCue gives above
-            Contact. */}
+        {/* Down arrow. Sits where the old row of tech-stack name pills
+            (Next.js, React, TypeScript, Node.js, ...) used to be — those read
+            as a list of tools rather than as anything the page was saying, so
+            they are gone. The arrow is the cue that there is more page below,
+            the same signal the ScrollCue gives above Contact. */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="mt-14 flex flex-col items-center gap-6"
+          className="mt-14 flex justify-center"
         >
-          <CrescentMoon />
-
           <a
             href="#about"
             aria-label={ui.scrollDown}
