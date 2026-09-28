@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useSite } from "@/context/SiteContext";
+import useActiveSection from "@/hooks/useActiveSection";
 import LoginModal from "@/components/LoginModal";
 
 const BASE_LINK_KEYS: { key: string; href: string }[] = [
@@ -34,6 +35,11 @@ export default function Navbar() {
       ? [...BASE_LINK_KEYS.slice(0, 6), { key: "testimonials", href: "#testimonials" }, ...BASE_LINK_KEYS.slice(6)]
       : BASE_LINK_KEYS;
 
+  // Section currently in view, so the matching link reads as selected. Null on
+  // pages with no sections (/admin, /blog/[id]), which leaves nothing lit.
+  // Declared after LINK_KEYS because it is derived from it.
+  const activeHref = useActiveSection(LINK_KEYS.map((l) => l.href));
+
   return (
     <>
       <nav className="fixed left-0 right-0 top-4 z-50 px-4">
@@ -42,15 +48,23 @@ export default function Navbar() {
             Robin<span className="text-primary">.</span>
           </Link>
 
-          <div className="hidden items-center gap-6 lg:flex">
-            {LINK_KEYS.map((link, index) => (
+          {/* Inline nav starts at xl, not lg: every link now carries the same
+              padding so the highlight can move without reflowing the row, and
+              that costs ~24px per link. At lg (1024px) only ~952px is free,
+              which 7 padded links already overrun and 8 overflow badly. */}
+          <div className="hidden items-center gap-6 xl:flex">
+            {LINK_KEYS.map((link) => (
               <Link
                 key={link.key}
                 href={link.href}
-                className={`text-sm font-semibold transition ${
-                  index === 0
-                    ? "rounded-xl border border-primary/40 bg-primary/10 px-3 py-1.5 text-primary"
-                    : "text-muted hover:text-foreground"
+                aria-current={link.href === activeHref ? "true" : undefined}
+                className={`whitespace-nowrap rounded-xl border px-3 py-1.5 text-sm font-semibold transition ${
+                  // Padding and border are on both states, differing only in
+                  // colour. Giving the active state its own padding would make
+                  // the whole nav reflow horizontally as the highlight moves.
+                  link.href === activeHref
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-transparent text-muted hover:text-foreground"
                 }`}
               >
                 {ui[link.key]}
@@ -125,7 +139,7 @@ export default function Navbar() {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
-              className="rounded-xl border border-border p-2 text-foreground lg:hidden"
+              className="rounded-xl border border-border p-2 text-foreground xl:hidden"
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
@@ -135,13 +149,18 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="mx-auto mt-2 flex max-w-6xl flex-col gap-1 rounded-2xl border border-border bg-background/95 p-4 shadow-lg backdrop-blur-xl lg:hidden">
+          <div className="mx-auto mt-2 flex max-w-6xl flex-col gap-1 rounded-2xl border border-border bg-background/95 p-4 shadow-lg backdrop-blur-xl xl:hidden">
             {LINK_KEYS.map((link) => (
               <Link
                 key={link.key}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-white/5 hover:text-foreground"
+                aria-current={link.href === activeHref ? "true" : undefined}
+                className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                  link.href === activeHref
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted hover:bg-white/5 hover:text-foreground"
+                }`}
               >
                 {ui[link.key]}
               </Link>

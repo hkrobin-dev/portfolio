@@ -372,6 +372,13 @@ bg-primary  text-primary  from-primary  to-secondary  bg-accent
     style recalculation every frame. The component reads `--color-text` / `--color-primary`
     once and re-reads them from a `MutationObserver` on `<html>`'s `class`/`style`, which is
     where `ThemeContext` writes them. Same trap applies to any future per-frame code.
+22. **The navbar's selected link must come from `useActiveSection`, never the link's array
+    index.** The original code styled `index === 0`, which lit Home permanently — even at the
+    bottom of the page. Two things to preserve: the hook's effect depends on
+    `hrefs.join(",")` because `LINK_KEYS` is rebuilt every render (depending on the array
+    would re-add every listener each frame), and the active/inactive classes must carry the
+    *same* padding and border, differing only in colour — giving active its own padding makes
+    the nav reflow horizontally as the highlight moves.
 
 ## Page / route map
 
