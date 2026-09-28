@@ -10,13 +10,17 @@ import { BackgroundProvider } from "@/context/BackgroundContext";
 export default function Providers({ children }: { children: ReactNode }) {
   return (
     <SiteProvider>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <BackgroundProvider>{children}</BackgroundProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
+      {/* BackgroundProvider sits above ThemeProvider because the starfield
+          forces dark mode: a near-black sky behind light mode's near-black
+          text is unreadable, so ThemeProvider has to read bgStyle. It is pure
+          localStorage state with no dependencies, so hoisting it is safe. */}
+      <BackgroundProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </BackgroundProvider>
     </SiteProvider>
   );
 }

@@ -21,7 +21,7 @@ const BASE_LINK_KEYS: { key: string; href: string }[] = [
 
 export default function Navbar() {
   const { isAdmin, logout } = useAuth();
-  const { modePref, mode, cycleMode } = useTheme();
+  const { modePref, mode, modeForced, cycleMode } = useTheme();
   const { lang, toggleLang, ui } = useLanguage();
   const { content } = useSite();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -73,10 +73,18 @@ export default function Navbar() {
             <button
               onClick={cycleMode}
               aria-label="Toggle theme"
-              title={`Theme: ${modePref === "system" ? "Device default" : modePref}`}
+              title={
+                modeForced
+                  ? "Theme: Dark (required by the Starfield background)"
+                  : `Theme: ${modePref === "system" ? "Device default" : modePref}`
+              }
               className="rounded-xl border border-border p-2 text-muted transition hover:border-primary hover:text-foreground"
             >
-              {modePref === "system" ? <Monitor size={16} /> : mode === "dark" ? <Moon size={16} /> : <Sun size={16} />}
+              {modeForced || modePref !== "system" ? (
+                mode === "dark" ? <Moon size={16} /> : <Sun size={16} />
+              ) : (
+                <Monitor size={16} />
+              )}
             </button>
 
             {/* Resume - desktop only */}

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { useSite } from "./SiteContext";
+import { useBackground } from "./BackgroundContext";
 
 export type ModePref = "dark" | "light" | "system";
 type ResolvedMode = "dark" | "light";
@@ -9,6 +10,7 @@ type ResolvedMode = "dark" | "light";
 type ThemeState = {
   modePref: ModePref;
   mode: ResolvedMode; // the actually-applied mode after resolving "system"
+  modeForced: boolean; // true when a background is overriding the preference
   setModePref: (m: ModePref) => void;
   cycleMode: () => void;
 };
@@ -34,6 +36,7 @@ function getSystemPref(): ResolvedMode {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { content } = useSite();
+  const { bgStyle } = useBackground();
   const [modePref, setModePrefState] = useState<ModePref>("system");
   const [systemMode, setSystemMode] = useState<ResolvedMode>("dark");
   const [ready, setReady] = useState(false);
@@ -69,7 +72,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setModePref(modePref === "dark" ? "light" : modePref === "light" ? "system" : "dark");
   }, [modePref, setModePref]);
 
-  const mode: ResolvedMode = modePref === "system" ? systemMode : modePref;
+  const resolved: ResolvedMode = modePref === "system" ? systemMode : modePref;
+
+  // The starfield paints a near-black sky. In light mode `--color-text` is
+  // near-black too, so body copy would sit black-on-black. Rather than
+  // shipping an unreadable page, Starfield forces the *effective* mode dark.
+  // `modePref` is deliberately left untouched, so switching the background
+  // away from Starfield restores whatever the visitor actually chose.
+  const modeForced = bgStyle === "stars";
+  const mode: ResolvedMode = modeForced ? "dark" : resolved;
 
   // Apply CSS variables + light/dark class to <html>
   useEffect(() => {
@@ -95,7 +106,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [mode, content?.theme?.colors, ready]);
 
   return (
-    <ThemeContext.Provider value={{ modePref, mode, setModePref, cycleMode }}>
+    <ThemeContext.Provider value={{ modePref, mode, modeForced, setModePref, cycleMode }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -60,18 +60,22 @@ Next.js loads `.env.local` itself, so there is no `dotenv` call anywhere in the 
 `Providers.tsx` nests contexts in this **required** order:
 
 ```
-SiteProvider → ThemeProvider → LanguageProvider → AuthProvider → BackgroundProvider
+SiteProvider → BackgroundProvider → ThemeProvider → LanguageProvider → AuthProvider
 ```
 
 - `SiteContext` — fetches **all** content once on mount (`Promise.all` over 7 endpoints),
   exposes `content`, `loading`, `error`, `refresh()`, `updateSection(section, value)`.
   Every admin page and every public section reads from here. No per-component fetching.
-- `ThemeContext` — depends on `useSite()` (reads `content.theme.colors` + `defaultMode`).
-  Writes CSS variables onto `document.documentElement` and adds a `dark`/`light` class to `<html>`.
+- `BackgroundContext` — per-visitor background style, localStorage only, never sent to the
+  server. Sits **above** `ThemeProvider` because it has no dependencies of its own and
+  `ThemeContext` needs to read `bgStyle` (see the Starfield coupling below). Moving it back
+  under `AuthProvider` breaks the build.
+- `ThemeContext` — depends on `useSite()` (reads `content.theme.colors` + `defaultMode`) and
+  on `useBackground()`. Writes CSS variables onto `document.documentElement` and adds a
+  `dark`/`light` class to `<html>`.
 - `LanguageContext` — `lang` (`en` | `bn`), `toggleLang()`, `t(field)` translator,
   and `ui` = static UI strings (nav labels, buttons) per language.
 - `AuthContext` — JWT (`admin_token` in localStorage), `isAdmin`, `login`, `logout`.
-- `BackgroundContext` — per-visitor background style, localStorage only, never sent to the server.
 
 ### The API (`src/app/api`)
 
@@ -358,6 +362,16 @@ bg-primary  text-primary  from-primary  to-secondary  bg-accent
 19. No automated tests. `npm run lint` and `npx tsc --noEmit` are the available checks, plus
     the manual round-trip: hit a `GET`, `PUT` the identical payload back, and confirm the
     `GET` is unchanged.
+20. **The `stars` background forces dark mode.** `SpaceField` paints a near-black sky, and
+    light mode's `--color-text` is near-black, so body copy would be invisible. `ThemeContext`
+    therefore derives `modeForced = bgStyle === "stars"` and overrides only the *effective*
+    mode. Never write the override back to `modePref`/localStorage — that is what makes it
+    reversible: switch the background away and the visitor's real preference returns. This is
+    also the only reason `BackgroundProvider` sits above `ThemeProvider`.
+21. **`getComputedStyle` must not be called inside the `SpaceField` rAF loop.** It forces a
+    style recalculation every frame. The component reads `--color-text` / `--color-primary`
+    once and re-reads them from a `MutationObserver` on `<html>`'s `class`/`style`, which is
+    where `ThemeContext` writes them. Same trap applies to any future per-frame code.
 
 ## Page / route map
 
