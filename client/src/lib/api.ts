@@ -1,4 +1,11 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// The API lives inside this Next app (src/app/api), so every request is
+// same-origin and no environment variable is required. NEXT_PUBLIC_API_URL is
+// still honoured as an escape hatch in case the API ever moves back out.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+// Must stay under Vercel's ~4.5MB request body cap — a bigger upload is
+// rejected by the platform before this code ever runs.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -25,9 +32,7 @@ async function request(path: string, options: RequestInit = {}) {
       },
     });
   } catch {
-    throw new Error(
-      "Could not reach the server. Make sure the backend (server folder) is running and NEXT_PUBLIC_API_URL is correct."
-    );
+    throw new Error("Could not reach the server. Please check your connection and try again.");
   }
 
   const isJson = res.headers.get("content-type")?.includes("application/json");
@@ -75,6 +80,12 @@ export const api = {
   me: () => request("/api/auth/me"),
 
   uploadImage: async (file: File): Promise<{ url: string }> => {
+    // Checked here too so the admin gets a readable message rather than a
+    // gateway error from Vercel's body-size limit.
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new Error("That image is too large. Please pick one under 4 MB.");
+    }
+
     const token = getToken();
     const formData = new FormData();
     formData.append("image", file);
@@ -99,6 +110,10 @@ export const api = {
 export function resolveMediaUrl(url?: string) {
   if (!url) return "";
   if (url.startsWith("http") || url.startsWith("/images")) return url;
+  // Legacy path from the standalone Express server. Nothing writes to /uploads
+  // any more (uploads go to Vercel Blob and return absolute https URLs), but
+  // an old row in the database could still point here — so prefix rather than
+  // drop it, and it resolves to the same app now that both share an origin.
   if (url.startsWith("/uploads")) return `${API_URL}${url}`;
   return url;
 }

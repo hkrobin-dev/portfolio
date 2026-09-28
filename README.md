@@ -9,10 +9,13 @@ Education, Projects, Blog, Contact, রং/থিম — সব কিছু ন
 ## 🧩 Project Structure
 
 ```
-portfolio-main/
-├── client/   → Next.js frontend (public site + /admin dashboard)
-└── server/   → Express + PostgreSQL backend (content API, auth, image upload)
+portfolio/
+└── client/   → Next.js 14 — public site + /admin dashboard + /api (backend)
 ```
+
+আগে `server/` (Express) আলাদা ফোল্ডারে ছিল। এখন **পুরোটাই একটাই Next.js অ্যাপ** —
+ফ্রন্টএন্ড, অ্যাডমিন ড্যাশবোর্ড, আর ব্যাকএন্ড API (`src/app/api`) একই অ্যাপে।
+তাই একটি ডোমেইনেই সব কিছু চলে, আলাদা করে কোনো backend server লাগে না।
 
 ## ⚙️ প্রথমবার সেটআপ (Setup)
 
@@ -28,14 +31,14 @@ createdb portfolio
 [Railway](https://railway.app) — যেকোনো একটায় ফ্রি PostgreSQL বানিয়ে
 তার connection string ব্যবহার করুন।)
 
-### ২. Server চালু করুন
+### ২. চালু করুন
 
 ```bash
-cd server
-cp .env.example .env
+cd client
+cp .env.local.example .env.local
 ```
 
-`.env` ফাইলে নিচের জিনিসগুলো বসান:
+`.env.local` ফাইলে নিচের জিনিসগুলো বসান:
 
 ```
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/portfolio
@@ -44,25 +47,17 @@ ADMIN_PASSWORD=your-own-strong-password
 JWT_SECRET=any-long-random-string
 ```
 
+`BLOB_READ_WRITE_TOKEN` ছাড়া ছবি আপলোড কাজ করবে না (নিচে দেখুন)।
+
 ```bash
 npm install
 npm run dev
 ```
 
-সার্ভার প্রথমবার চালু হওয়ার সময় নিজে থেকেই টেবিল তৈরি করে এবং ডিফল্ট কনটেন্ট
-বসিয়ে দেয় — আলাদা করে migrate/seed কমান্ড চালানোর দরকার নেই। Server চলবে:
-`http://localhost:5000`
+সাইট চলবে: `http://localhost:3000` — এখানেই API-ও আছে (`/api/...`)।
 
-### ৩. Client চালু করুন
-
-```bash
-cd client
-cp .env.local.example .env.local
-npm install
-npm run dev
-```
-
-Site চলবে: `http://localhost:3000`
+অ্যাপটি প্রথমবার চালু হওয়ার সময় নিজে থেকেই টেবিল তৈরি করে এবং ডিফল্ট কনটেন্ট
+বসিয়ে দেয় — আলগা করে migrate/seed কমান্ড চালানোর দরকার নেই।
 
 ## 🔐 Admin Panel ব্যবহার
 
@@ -73,15 +68,14 @@ Site চলবে: `http://localhost:3000`
    সেকশনের এডিট পেজে যেতে পারবেন।
 
 ### লগইন-এ সমস্যা হলে
-- `.env` ফাইলে আসলেই `ADMIN_USERNAME`/`ADMIN_PASSWORD` বসিয়েছেন কিনা আর server
-  restart করেছেন কিনা চেক করুন (`.env` বদলালে সার্ভার রিস্টার্ট লাগবে)।
-- Client-এর `.env.local`-এ `NEXT_PUBLIC_API_URL` server-এর ঠিকানার সাথে মিলছে কিনা
-  দেখুন। বদলালে client-ও রিস্টার্ট করতে হবে (env পরিবর্তন rebuild ছাড়া কাজ করে না)।
-- Browser console-এ Network ট্যাব খুলে `/api/auth/login` রিকোয়েস্ট status code
-  দেখুন — 401 মানে ভুল username/password, network error/CORS মানে server address
-  ভুল বা server বন্ধ আছে।
-- Server-এর CORS ইচ্ছাকৃতভাবে সব origin allow করে (JWT bearer token ব্যবহার করা
-  হয়, cookie না — তাই cross-origin ঝুঁকি নেই), তাই সাধারণত CORS সমস্যা হবার কথা না।
+- `client/.env.local` ফাইলে আসলেই `ADMIN_USERNAME`/`ADMIN_PASSWORD` বসিয়েছেন কিনা চেক
+  করুন, আর `.env.local` বদলানোর পর ডেভ সার্ভার **রিস্টার্ট** করুন।
+- Browser console-এ Network ট্যাব খুলে `/api/auth/login` রিকোয়েস্টের status code
+  দেখুন — `401` মানে ভুল username/password, `500` মানে `.env.local`-এর
+  `DATABASE_URL` ভুল বা ডাটাবেজে পৌঁছানো যাচ্ছে না।
+- **CORS আর আলাদা server address-এর সমস্যা আর নেই** — সাইট আর API একই origin-এ,
+  তাই `NEXT_PUBLIC_API_URL` সেট করার কোনো দরকার নেই (এটা শুধু একটা legacy
+  override হিসেবে কোডে আছে)।
 
 ### Admin Panel থেকে যা যা এডিট করা যায়:
 - **Theme & Colors** — Primary/Secondary রং, Dark/Light-এর background/text রং, ডিফল্ট মোড (Dark/Light/Device default)
@@ -122,8 +116,15 @@ Navbar-এর EN/বাং বাটনে ক্লিক করলে ভা�
 ## 🖼️ ছবি আপলোড
 
 Admin Panel-এর যেকোনো ইমেজ ফিল্ডে "Upload Image" বাটনে ক্লিক করে সরাসরি কম্পিউটার
-থেকে ছবি দেওয়া যায় (server-এর `server/uploads` ফোল্ডারে সেভ হয়), অথবা চাইলে সরাসরি
-কোনো ইমেজ URL পেস্ট করেও দেওয়া যায়।
+থেকে ছবি দেওয়া যায়, অথবা চাইলে সরাসরি কোনো ইমেজ URL পেস্ট করেও দেওয়া যায়।
+
+আপলোড করা ছবি **Vercel Blob** storage-তে জমা হয় (লোকাল ডিস্কে কিছু সেভ হয় না)।
+সার্ভার ছবিটা নিয়ে ঘুরিয়ে দাঁড করায়, ১৬০০px চওড়ায় ছোট করে, WebP (q82) তে
+কম্প্রেস করে তারপর Blob-এ আপলোড করে — তাই ছবি হালকা থাকে ও সব platform-এ কাজ করে।
+
+এটার জন্য `BLOB_READ_WRITE_TOKEN` লাগে (নিচের Deploy সেকশন দেখুন)। ছবি **৪ MB বা
+এর কম** হতে হবে — Vercel বড় request body আটকে দেয়, তাই এর বেশি হলে আপলোড
+আগেই থেমে যায়।
 
 ## 📄 "See More" / "Read More" ডিটেইল পেজ
 
@@ -134,51 +135,63 @@ Admin Panel-এর যেকোনো ইমেজ ফিল্ডে "Upload Im
 - Admin Panel-এ এই ডিটেইল কনটেন্ট (Full Description / Full Content) আলাদা
   ফিল্ড হিসেবে এডিট করা যায়।
 
-## 🚀 Backend Deploy করা — Vercel
+## 🚀 Deploy করা — Vercel (একটাই প্রজেক্ট, একটাই ডোমেইন)
 
-Server-টা এখন Vercel-এর serverless ফরম্যাটে ready (`server/api/index.ts` + `server/vercel.json`)।
-Image upload local ফোল্ডারের বদলে **Vercel Blob** storage ব্যবহার করে, যাতে সব ঠিকঠাক persistent থাকে।
+আগে দুটো আলাদা Vercel প্রজেক্ট লাগত (একটা client-এর জন্য, একটা Express server-এর
+জন্য)। এখন **একটাই** প্রজেক্ট — Next.js অ্যাপ নিজেই সাইট, অ্যাডমিন প্যানেল আর API
+তিনটাই সার্ভ করে।
 
 1. **PostgreSQL বানান** — [Neon](https://neon.tech) বা [Supabase](https://supabase.com)-এ ফ্রি একটা
    Postgres ডাটাবেজ বানিয়ে connection string (`DATABASE_URL`) নিন।
-2. Vercel-এ গিয়ে **New Project** → এই রিপোর ভেতর থেকে **শুধু `server` ফোল্ডারটা** Root Directory
-   হিসেবে সিলেক্ট করুন (client আলাদা project হিসেবে deploy হবে)।
-3. Project বানানোর পর, তার **Storage** ট্যাব থেকে **Blob** স্টোর যোগ করুন — এটা automatic ভাবে
-   `BLOB_READ_WRITE_TOKEN` env variable বসিয়ে দেবে, কিছু করা লাগবে না।
-4. Project **Settings → Environment Variables**-এ বসান:
+2. Vercel-এ গিয়ে **New Project** → এই রিপোর ট্রান্সফার করুন → প্রজেক্ট সেটিংসে
+   **Root Directory = `client`** করে দিন। Framework অটো-ডিটেক্ট হয়ে Next.js পাবে,
+   build command ও এখন `next build`।
+3. প্রজেক্টের **Storage** ট্যাব থেকে একটা **Blob** স্টোর যোগ করুন — এটা automatic
+   ভাবে `BLOB_READ_WRITE_TOKEN` env variable বসিয়ে দেবে, কিছু করা লাগবে না।
+4. **Settings → Environment Variables**-এ বসান:
    ```
    DATABASE_URL=...
    ADMIN_USERNAME=...
    ADMIN_PASSWORD=...
    JWT_SECRET=...
-   CLIENT_URL=https://your-frontend-domain.vercel.app
    ```
-5. Deploy করুন। শেষ হলে Vercel একটা URL দেবে (যেমন `https://your-backend.vercel.app`) — এটাই
-   আপনার backend-এর ঠিকানা।
-6. Client-এর `.env.local`-এ (এবং client-কে Vercel-এ deploy করলে সেখানকার env variable-এও)
-   `NEXT_PUBLIC_API_URL`-কে এই backend URL-এ বসিয়ে দিন।
+   `NEXT_PUBLIC_API_URL` লাগবে **না** — API একই origin-এ চলে।
+5. Deploy করুন। Vercel একটা URL দেবে (যেমন `https://your-app.vercel.app`),
+   পরে **Settings → Domains** থেকে আপনার ডোমেইন যুক্ত করুন।
+
+> ⚠️ **ডোমেইন আগে বদলাবেন না।** আগে `*.vercel.app` ঠিকানায় গিয়ে চোখে দেখে নিন যে
+> সাইট, লগইন, এডিট সেভ, আর ছবি আপলোড ঠিকভাবে কাজ করছে। তারপর ডোমেইন পয়েন্ট করুন।
 
 ### লোকাল কম্পিউটারে সেটআপের সময় (Vercel Blob-এর জন্য)
-লোকাল ডেভেলপমেন্টে ছবি আপলোড টেস্ট করতে চাইলে, Vercel প্রজেক্টের Storage ট্যাব থেকে Blob-এর
-`BLOB_READ_WRITE_TOKEN` কপি করে `server/.env`-এ বসান।
+লোকাল ডেভেলপমেন্টে ছবি আপলোড টেস্ট করতে চাইলে, Vercel প্রজেক্টের Storage ট্যাব থেকে
+Blob-এর `BLOB_READ_WRITE_TOKEN` কপি করে `client/.env.local`-এ বসান।
 
 ### Vercel ছাড়া অন্য কোথাও (Railway/Render/VPS)
-`server/src/index.ts` দিয়ে normal Node সার্ভার হিসেবেই চালানো যায় (`npm run build && npm start`)।
-সেক্ষেত্রেও ছবি Vercel Blob-এই যাবে (যেকোনো প্ল্যাটফর্ম থেকে কাজ করে, শুধু `BLOB_READ_WRITE_TOKEN`
-env variable-এ থাকতে হবে) — তাই hosting platform বদলালেও image upload ভাঙবে না।
+যেকোনো Node.js হোস্টিংয়েই চলবে — `cd client && npm run build && npm start`।
+ছবি এখনও Vercel Blob-এই যাবে (শুধু `BLOB_READ_WRITE_TOKEN` env variable-এ থাকলেই),
+তাই hosting বদলালেও image upload ভাঙবে না।
 
-Production build (Vercel ছাড়া অন্য hosting-এর জন্য):
+## 🗄️ Backend কোথায় আছে
 
-```bash
-# server
-cd server && npm run build && npm start
+API রুটগুলো Next.js-এর নিজস্ব route handler হিসেবে `client/src/app/api/`-তে আছে:
 
-# client
-cd client && npm run build && npm start
 ```
+/api/settings        GET          /api/projects       GET, PUT
+/api/settings/[sec]   PUT          /api/projects/[id]  GET
+/api/skills          GET, PUT     /api/blogs          GET, PUT
+/api/experience      GET, PUT     /api/blogs/[id]     GET
+/api/education       GET, PUT     /api/testimonials   GET, PUT
+/api/auth/login      POST         /api/upload         POST
+/api/auth/me         GET          /api/contact        POST
+```
+
+DB লজিক (`src/lib/server/db/`) সরাসরি `pg` ব্যবহার করে — কোনো ORM নেই।
+`src/lib/server/` ফোল্ডারের শুরুতে `import "server-only"` আছে, তাই কোনো
+client component ভুল করে এখান থেকে কিছু import করলে build-ই fail হয়ে যাবে
+(secrets browser-এ চলে যাওয়ার আগেই ধরা পড়বে)।
 
 ## 🔧 Tech Stack
 
 - **Frontend:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion
-- **Backend:** Express, TypeScript, JWT auth, Multer (image upload)
+- **Backend:** Next.js Route Handlers (API), TypeScript, JWT auth, `sharp` (image processing)
 - **Database:** PostgreSQL (via the `pg` driver, plain SQL — no ORM binaries to fight with)

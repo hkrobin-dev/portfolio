@@ -6,45 +6,52 @@ A **white-label, fully editable portfolio website**. All content lives in Postgr
 edited through an `/admin` dashboard — no code changes needed to change copy, images, colors,
 projects, blog posts, etc.
 
-Two deployable apps in one repo:
+It is a **single Next.js app** — the public site, the admin dashboard, and the backend API all
+live in `client/` and deploy to **one domain**:
 
 ```
-client/  → Next.js 14 (App Router) — public site + /admin dashboard   → port 3000
-server/  → Express + plain SQL (pg) — content API, JWT auth, uploads  → port 5000
+client/src/app/         → pages (public site + /admin)
+client/src/app/api/     → backend API (Next.js Route Handlers)
+client/src/lib/server/  → server-only code: DB layer, auth, http helpers
 ```
 
-`Food resturent/` is an unrelated standalone static HTML/CSS demo — ignore it.
+There is no separate Express server. It was removed when the backend moved into Next.js; the
+old code is still in git history at commit `2af7e06` if you ever need to look at it.
 
 ## Stack
 
 | Layer | Choice |
 |---|---|
 | Frontend | Next.js 14 (App Router, all client components), TypeScript, Tailwind 3, Framer Motion, lucide-react, react-icons, sonner (toasts), react-hook-form + zod |
-| Backend | Express 4, TypeScript, `pg` (no ORM), jsonwebtoken, multer (memory storage), sharp, @vercel/blob, nodemailer |
+| Backend | Next.js Route Handlers in `src/app/api`, `pg` (no ORM), jsonwebtoken, sharp, @vercel/blob, nodemailer |
 | DB | PostgreSQL. Neon/Supabase in prod, local `createdb portfolio` in dev |
-| Deploy | `server` → Vercel serverless (`server/api/index.ts` + `server/vercel.json`); `client` → Vercel |
+| Deploy | Vercel — one project, **Root Directory = `client`** |
 
 ## Commands
 
 ```bash
-# server  (auto-creates tables + seeds on first boot)
-cd server && npm install && npm run dev        # tsx watch, port 5000
-cd server && npm run build && npm start       # tsc -> dist, node dist/index.js
-cd server && npm run typecheck                # checks src/ AND api/ (the Vercel function)
-
-# client
-cd client && npm install && npm run dev        # port 3000
-cd client && npm run build
+# everything runs from client/
+cd client && npm install && npm run dev     # next dev, port 3000 (site + API)
+cd client && npm run build && npm start    # production server
+cd client && npx tsc --noEmit              # typecheck only
+cd client && npm run lint
 ```
+
+The API is served by `npm run dev` / `npm start` too — there is no second process. If the
+frontend can reach the database, the API works. Schema creation and seeding happen
+automatically on the first query of each server instance.
 
 ## Env vars
 
-`server/.env`: `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `JWT_SECRET`, `PORT`,
-`CLIENT_URL`, `SMTP_HOST/PORT/USER/PASS`, `CONTACT_RECEIVER`, plus `BLOB_READ_WRITE_TOKEN`
-(add manually for local image-upload testing).
+`client/.env.local` (gitignored; copy from `.env.local.example`): `DATABASE_URL`,
+`ADMIN_USERNAME`, `ADMIN_PASSWORD`, `JWT_SECRET`, `BLOB_READ_WRITE_TOKEN` (image upload),
+`SMTP_HOST/PORT/USER/PASS` + `CONTACT_RECEIVER` (only if you wire up the contact endpoint),
+and optionally `DATABASE_POOL_MAX`.
 
-`client/.env` or `.env.local`: `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:5000`).
-Changing it needs a client restart.
+`NEXT_PUBLIC_API_URL` is **not needed** — the API is same-origin. It survives in `lib/api.ts`
+only as a legacy escape hatch. Never point it at `localhost:5000`; nothing listens there now.
+
+Next.js loads `.env.local` itself, so there is no `dotenv` call anywhere in the codebase.
 
 ## Architecture
 
@@ -66,7 +73,32 @@ SiteProvider → ThemeProvider → LanguageProvider → AuthProvider → Backgro
 - `AuthContext` — JWT (`admin_token` in localStorage), `isAdmin`, `login`, `logout`.
 - `BackgroundContext` — per-visitor background style, localStorage only, never sent to the server.
 
-### Data model (server)
+### The API (`src/app/api`)
+
+Every endpoint is a Route Handler. The mechanical translations from the old Express code:
+
+| Express | Route Handler |
+|---|---|
+| `req.body` | `await req.json()` |
+| `res.json(x)` | `Response.json(x)` |
+| `res.status(n).json(x)` | `Response.json(x, { status: n })` |
+| `req.params.id` | `({ params }: { params: { id: string } })` |
+| `asyncHandler(...)` | nothing — Next awaits handlers and catches throws |
+| `cors()` | nothing — same origin |
+| `express.json({ limit })` | nothing |
+
+`requireAdmin` was middleware and is now a **function** returning *either* the admin or a
+401 `Response`:
+
+```ts
+const admin = requireAdmin(req);
+if (admin instanceof Response) return admin;
+```
+
+End every try/catch with `return jsonError(e)` so the thrown message survives into the JSON
+body — Next would otherwise replace it with a generic 500 page.
+
+### Data model
 
 Two shapes only:
 
@@ -76,38 +108,67 @@ Two shapes only:
 2. **List collections** → their own tables with a `sort_order` column:
    `skill_groups`, `experience`, `education`, `projects`, `blog_posts`, `testimonials`.
    API: `GET /api/<name>`, `GET /api/<name>/:id` (projects, blogs only), and
-   `PUT /api/<name>` = **bulk replace the entire list** (DELETE all + re-INSERT in a transaction,
-   `sort_order` = array index). No per-item endpoints by design.
+   `PUT /api/<name>` = **bulk replace the entire list** (DELETE all + re-INSERT in a
+   transaction, `sort_order` = array index). No per-item endpoints by design.
 
-Seed data lives in `server/src/defaultContent.ts` and is only inserted when a table is empty.
-`server/src/db/init.ts` runs `SCHEMA_SQL` then the seeders; it is called on boot and once per
-warm serverless instance.
+Seed data lives in `src/lib/server/defaultContent.ts` and is only inserted when a table is
+empty. `src/lib/server/db/init.ts` runs `SCHEMA_SQL` then the seeders; `db/index.ts` calls it
+lazily on the first query of each instance (see gotcha 1).
 
 Auth: `POST /api/auth/login` compares against env vars, returns a 7-day JWT.
-`requireAdmin` middleware guards every `PUT` and the upload route. All `GET`s are public.
+`requireAdmin` guards every `PUT` and the upload route. All `GET`s are public.
 
 ## Conventions to follow
 
 ### Adding a NEW content section (end-to-end checklist)
 
-1. `server/src/db/schema.ts` — add `CREATE TABLE IF NOT EXISTS` (or a new `settings` column).
-2. `server/src/db/<name>.ts` — `rowToItem`, `list<Name>`, `replace<Name>`, optional seeder.
+1. `src/lib/server/db/schema.ts` — add `CREATE TABLE IF NOT EXISTS` (or a new `settings` column).
+2. `src/lib/server/db/<name>.ts` — `rowToItem`, `list<Name>`, `replace<Name>`, optional seeder.
    Copy the `projects.ts` / `skills.ts` shape exactly (transaction + `sort_order` loop).
-3. `server/src/defaultContent.ts` — add seed data (skip for opt-in sections like testimonials).
-4. `server/src/routes/<name>.ts` — `GET /`, optional `GET /:id`, `PUT /` with `requireAdmin`.
-   **Wrap every async handler in `asyncHandler(...)` from `../middleware/asyncHandler`** — Express 4
-   does not catch rejected promises. A final error middleware in `app.ts` turns them into JSON.
-5. `server/src/app.ts` — `app.use("/api/<name>", <name>Routes)`.
-6. `server/src/db/init.ts` — register the seeder (if it has one).
-7. `client/src/lib/api.ts` — add `get<Name>` / `update<Name>` to the `api` object.
-8. `client/src/context/SiteContext.tsx` — add to `LIST_SECTIONS` **and** to the
+   Import `pool` from `"./index"`, **not** `"./pool"` — see gotcha 1.
+3. `src/lib/server/defaultContent.ts` — add seed data (skip for opt-in sections like testimonials).
+4. `src/app/api/<name>/route.ts` — `GET`, optional `../[id]/route.ts` for `GET /:id`, and
+   `PUT` guarded by `requireAdmin`. Every GET that reads the DB needs
+   `export const dynamic = "force-dynamic"` (gotcha 3). Every try/catch ends in `jsonError(e)`.
+5. `src/lib/server/db/init.ts` — register the seeder (if it has one), passing the raw pool.
+6. `src/lib/api.ts` — add `get<Name>` / `update<Name>` to the `api` object.
+7. `src/context/SiteContext.tsx` — add to `LIST_SECTIONS` **and** to the
    `Promise.all` destructuring in `refresh()`.
-9. `client/src/app/admin/<name>/page.tsx` — copy an existing admin page (see below).
-10. `client/src/app/admin/layout.tsx` — add to `NAV` (sidebar) **and**
-    `client/src/app/admin/page.tsx` `CARDS` (dashboard grid).
-11. `client/src/components/<Name>.tsx` — public section, add it to `client/src/app/page.tsx`.
-12. Nav link (optional): `Navbar.tsx` `BASE_LINK_KEYS` + a matching `ui` key in
+8. `src/app/admin/<name>/page.tsx` — copy an existing admin page (see below).
+9. `src/app/admin/layout.tsx` — add to `NAV` (sidebar) **and**
+   `src/app/admin/page.tsx` `CARDS` (dashboard grid).
+10. `src/components/<Name>.tsx` — public section, add it to `src/app/page.tsx`.
+11. Nav link (optional): `Navbar.tsx` `BASE_LINK_KEYS` + a matching `ui` key in
     **both** `en` and `bn` in `LanguageContext.tsx`.
+
+### Route handler template (the exact shape used everywhere)
+
+```ts
+import { requireAdmin } from "@/lib/server/auth";
+import { list<Name>, replace<Name> } from "@/lib/server/db/<name>";
+import { jsonError } from "@/lib/server/http";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    return Response.json(await list<Name>());
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+
+export async function PUT(req: Request) {
+  const admin = requireAdmin(req);
+  if (admin instanceof Response) return admin;
+
+  try {
+    return Response.json(await replace<Name>(await req.json()));
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+```
 
 ### Admin page template (the exact shape used everywhere)
 
@@ -193,7 +254,7 @@ bg-background  text-foreground  text-muted  bg-surface  border-border
 bg-primary  text-primary  from-primary  to-secondary  bg-accent
 ```
 
-- Defined in `client/src/app/globals.css` (`--color-*`), registered in `client/tailwind.config.ts`.
+- Defined in `src/app/globals.css` (`--color-*`), registered in `tailwind.config.ts`.
 - Admin-editable: primary, secondary, accent, backgroundDark/Light, surfaceDark/Light, textDark/Light.
 - **Not** admin-editable (hardcoded in globals.css): `--color-border`, `--color-muted`
   (border/muted are re-declared under `html.light`).
@@ -209,7 +270,7 @@ bg-primary  text-primary  from-primary  to-secondary  bg-accent
   `field[lang] → field.en → field.bn`.
 - `t()` also accepts a plain `string`, so `t(contact.email)` is valid.
 - Static UI labels (nav items, buttons) live in `UI_STRINGS` inside
-  `client/src/context/LanguageContext.tsx` — **always add both `en` and `bn`** and read via `ui.key`.
+  `src/context/LanguageContext.tsx` — **always add both `en` and `bn`** and read via `ui.key`.
 - `t(someObj)` is truthy-checked in JSX (`t(edu.location) && ...`) because an empty
   `{en:"",bn:""}` object is truthy — use `t(x)` string output, not the object, for conditions.
 
@@ -217,55 +278,80 @@ bg-primary  text-primary  from-primary  to-secondary  bg-accent
 
 - Always render `<img>` with `resolveMediaUrl(url)` (not `next/image`) — the existing code
   disables the lint rule inline. Content image URLs come from Vercel Blob after upload.
-- Uploads: `POST /api/upload` (Bearer token) → sharp rotate + resize to 1600px wide +
-  webp q82 → `@vercel/blob` `put()` → returns a public URL. Nothing touches local disk.
-- Static assets live in `client/public` (`/images/...`, resume PDF at
+- Uploads: `POST /api/upload` (Bearer token) → `req.formData()` → sharp rotate + resize to
+  1600px wide + webp q82 → `@vercel/blob` `put()` → returns a public URL. Nothing touches disk.
+- Static assets live in `public/` (`/images/...`, resume PDF at
   `/FullStack-Hasan-Kabir-Robin.pdf`).
 
 ## Gotchas / known sharp edges
 
-### Vercel / serverless
+### The lazy-DB-init deadlock (read this before adding a seeder)
 
-1. **Two tsconfigs, deliberately.** `tsconfig.json` is the base used by the editor and by
-   Vercel when it type-checks the function: it covers **both** `src/` and `api/` and is
-   `noEmit` with **no `rootDir`**. `tsconfig.build.json` is what `npm run build` uses: it pins
-   `rootDir: "src"` so the emit stays `dist/index.js` (what `main` and `npm start` point at).
-   Putting `api/` into the build config reproduces `error TS6059: File 'api/index.ts' is not
-   under 'rootDir' 'src'` — that is the trap this split exists to avoid.
-2. **`api/index.ts` is the real deploy artifact.** Vercel bundles it with `@vercel/node` via
-   `vercel.json`'s rewrite of `/(.*)` → `/api/index`. The `dist/` emit is *not* used by Vercel.
-3. **DB connections are capped at 1 per instance** (`DATABASE_POOL_MAX` overrides). Each warm
-   Vercel instance is its own process, so the pg default of 10 exhausts a managed provider's
+1. **`db/index.ts` exports a fake `pool` that runs `initDatabase()` first.** Every DB module
+   imports `pool` from `"./index"`, and the first `pool.query(...)` of a server instance
+   triggers the schema + seed step; all later queries reuse the resolved promise.
+   **Anything that runs *inside* `initDatabase()` must use the raw pool from `"./pool"`** —
+   the seeders otherwise call `ensureDb()` from inside the very promise `ensureDb()` is
+   waiting on, and every request hangs until the platform times it out. That bug is easy to
+   reintroduce and has no type error, so each `seed*` function takes the pool as a **required
+   `db: Pool` argument** and `init.ts` passes the raw one. Symptoms if you get it wrong:
+   `/api/auth/me` responds in <1s (no DB) while any DB route never returns.
+2. **Init failures are not cached.** `db/index.ts` clears `ready` on rejection so a transient
+   cold-start blip does not permanently poison a warm instance.
+
+### Vercel / Next.js
+
+3. **Every DB-reading GET needs `export const dynamic = "force-dynamic"`.** Without it Next
+   prerenders the route at build time — which hits the database during `next build` and then
+   serves a frozen snapshot until the next deploy.
+4. **`serverComponentsExternalPackages`** in `next.config.js` keeps `pg`, `sharp`,
+   `@vercel/blob`, `nodemailer` and `jsonwebtoken` out of the bundler, so their native and
+   optional dependencies are not traced. It is the Next 14 name; Next 15 renamed it to
+   `serverExternalPackages`.
+5. **DB connections are capped at 1 per instance** (`DATABASE_POOL_MAX` overrides). Each warm
+   Vercel instance is its own process, so pg's default of 10 exhausts a managed provider's
    connection limit under concurrency and produces intermittent
    "timeout exceeded when trying to connect".
-4. **`initDatabase()` failures are not cached.** `api/index.ts` clears `dbReady` on rejection so
-   a transient cold-start blip does not permanently poison a warm instance.
-5. **`sslmode=require` in `DATABASE_URL` is treated as `verify-full` by pg 8.23** (it prints a
+6. **`sslmode=require` in `DATABASE_URL` is treated as `verify-full` by pg 8.23** (it prints a
    warning on boot). Managed providers (Neon/Supabase) work, but a certificate-chain error here
-   surfaces as a 500 from the function, not a build error — check the function's runtime logs.
-6. `BLOB_READ_WRITE_TOKEN` must exist in Vercel (Storage tab) or image upload 500s at runtime.
-   `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `JWT_SECRET` are all required in Vercel
-   env — `server/.env` is gitignored, so nothing carries over from local.
+   surfaces as a 500 from the route, not a build error — check the function's runtime logs.
+7. **Uploads are capped at 4 MB on purpose.** Vercel rejects request bodies over ~4.5MB before
+   the function runs, so a higher limit is never enforced by our own check — the request just
+   dies with an opaque gateway error. `upload/route.ts` and `api.uploadImage` in `lib/api.ts`
+   both enforce 4MB so the user gets a readable message.
+8. `BLOB_READ_WRITE_TOKEN` must exist in Vercel (Storage tab) or image upload 500s at runtime
+   with a clear message. `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `JWT_SECRET` are
+   all required in Vercel env — `.env.local` is gitignored, so nothing carries over from local.
 
 ### Codebase
 
-7. **Adding a column to an existing table won't apply on a deployed DB.**
-   `schema.ts` only runs `CREATE TABLE IF NOT EXISTS`. For a new column you must add an
-   idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statement.
-8. **Bulk-replace means IDs matter.** `replace*` regenerates an id when the item has none
-   (`proj-${Date.now()}-${order}`), which breaks `/projects/[id]` and `/blog/[id]` links.
-   Always assign a stable `id` when creating items (`newProject()` does this).
-9. **The contact form does not use the backend.** `components/Contact.tsx` composes a
-   `mailto:` link. The nodemailer endpoint (`POST /api/contact`) exists but is unwired.
-10. `client/src/app/admin/login/page.tsx` calls `router.replace()` during render (existing smell).
-11. `resolveMediaUrl` only prefixes `API_URL` for legacy `/uploads/...` paths; Vercel Blob URLs
-    pass through untouched. `/images/...` and `http...` are returned as-is.
-12. `SiteContext.refresh()`'s `Promise.all` is a hardcoded list — forgetting to register a new
+9. **`import "server-only"` guards the server layer.** It sits at the top of `lib/server/auth.ts`,
+   `http.ts` and `db/index.ts`, so a client component that imports them fails `next build`
+   with "You're importing a component that needs server-only" instead of shipping secrets to
+   the browser. Add it to any new module a route handler imports.
+10. **Do not add `src/middleware.ts` to guard `/admin`.** The JWT lives in `localStorage`,
+    which middleware cannot read, so it would either be useless or give a false sense of
+    protection. Admin gating is client-side (`AuthContext`) plus `requireAdmin` per route.
+    Moving to an httpOnly cookie is a real auth rewrite, not a drop-in.
+11. **Adding a column to an existing table won't apply on a deployed DB.**
+    `schema.ts` only runs `CREATE TABLE IF NOT EXISTS`. For a new column you must add an
+    idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statement.
+12. **Bulk-replace means IDs matter.** `replace*` regenerates an id when the item has none
+    (`proj-${Date.now()}-${order}`), which breaks `/projects/[id]` and `/blog/[id]` links.
+    Always assign a stable `id` when creating items (`newProject()` does this).
+13. **The contact form does not use the backend.** `components/Contact.tsx` composes a
+    `mailto:` link. The nodemailer endpoint (`POST /api/contact`) exists but is unwired.
+14. `src/app/admin/login/page.tsx` calls `router.replace()` during render (existing smell).
+15. `resolveMediaUrl` prefixes `API_URL` for legacy `/uploads/...` paths; Vercel Blob URLs pass
+    through untouched. `/images/...` and `http...` are returned as-is. Nothing writes to
+    `/uploads` any more — it is kept only so old database rows still resolve.
+16. `SiteContext.refresh()`'s `Promise.all` is a hardcoded list — forgetting to register a new
     collection there means the admin panel can't load it.
-13. `tailwind.config.ts` `content` globs cover `src/app/**` and `src/components/**` only —
+17. `tailwind.config.ts` `content` globs cover `src/app/**` and `src/components/**` only —
     new component locations need a glob update.
-14. No tests and no shared ESLint config beyond `eslint-config-next`; `npm run lint` is available
-    in `client` only.
+18. No automated tests. `npm run lint` and `npx tsc --noEmit` are the available checks, plus
+    the manual round-trip: hit a `GET`, `PUT` the identical payload back, and confirm the
+    `GET` is unchanged.
 
 ## Page / route map
 
@@ -278,4 +364,12 @@ bg-primary  text-primary  from-primary  to-secondary  bg-accent
 /admin                 dashboard grid of section links
 /admin/{theme,hero,about,skills,experience,education,projects,blog,
        testimonials,contact,settings}
+
+/api/settings          GET                  /api/projects        GET, PUT
+/api/settings/[section] PUT (admin)         /api/projects/[id]   GET
+/api/skills            GET, PUT             /api/blogs           GET, PUT
+/api/experience        GET, PUT             /api/blogs/[id]      GET
+/api/education         GET, PUT             /api/testimonials    GET, PUT
+/api/auth/login        POST                 /api/upload          POST (admin)
+/api/auth/me           GET (admin)          /api/contact         POST
 ```

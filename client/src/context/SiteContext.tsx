@@ -46,7 +46,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     } catch (e: any) {
       setError(
         e?.message ||
-          "Could not reach the server. Make sure the backend (server folder) is running."
+          "Could not load the site content. Please check your connection and try again."
       );
     } finally {
       setLoading(false);
