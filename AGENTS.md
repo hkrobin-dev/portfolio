@@ -384,7 +384,7 @@ bg-primary  text-primary  from-primary  to-secondary  bg-accent
 
 ```
 /                      Hero → About → Projects → Skills → Experience → Education
-                       → Blog → Testimonials → ResumeCta → Contact → Footer
+                       → Blog → Testimonials → ScrollCue → Contact → Footer
 /blog/[id]             post detail (client fetch, notFound state on 404)
 /projects/[id]         project detail (client fetch, gallery slider + features)
 /admin/login           login page (rendered bare, no sidebar)

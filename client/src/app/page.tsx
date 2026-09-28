@@ -7,7 +7,7 @@ import Experience from "@/components/Experience";
 import Education from "@/components/Educaiton";
 import Blog from "@/components/Blog";
 import Testimonials from "@/components/Testimonials";
-import ResumeCta from "@/components/ResumeCta";
+import ScrollCue from "@/components/ScrollCue";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 
@@ -24,7 +24,7 @@ export default function Home() {
       <Education />
       <Blog />
       <Testimonials />
-      <ResumeCta />
+      <ScrollCue />
       <Contact />
       <Footer />
     </main>
