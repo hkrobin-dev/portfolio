@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Copy } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Copy, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { FaGithub, FaLinkedin, FaFacebook, FaTwitter } from "react-icons/fa";
 import { useSite } from "@/context/SiteContext";
 import { useLanguage } from "@/context/LanguageContext";
 import EditFab from "@/components/EditFab";
+import CrescentMoon from "@/components/CrescentMoon";
 
 export default function Hero() {
   const { content } = useSite();
-  const { t } = useLanguage();
+  const { t, ui } = useLanguage();
+  const reduceMotion = useReducedMotion();
   const hero = content?.hero;
 
   const copyEmail = async () => {
@@ -127,21 +129,36 @@ export default function Hero() {
           )}
         </motion.div>
 
-        {/* Tech Stack */}
+        {/* Half-moon and a down arrow. Replaces the old row of tech-stack
+            name pills (Next.js, React, TypeScript, Node.js, ...), which read
+            as a list rather than as anything. The arrow is the cue that there
+            is more page below — the same signal the ScrollCue gives above
+            Contact. */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="mt-12 flex flex-wrap justify-center gap-3"
+          className="mt-14 flex flex-col items-center gap-6"
         >
-          {(hero.techStack || []).map((tech: string) => (
-            <span
-              key={tech}
-              className="rounded-full border border-border bg-foreground/5 px-4 py-2 text-sm text-muted backdrop-blur-sm transition hover:border-primary hover:text-foreground"
+          <CrescentMoon />
+
+          <a
+            href="#about"
+            aria-label={ui.scrollDown}
+            className="group flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-primary transition-colors duration-300 hover:border-primary hover:bg-primary/20"
+          >
+            <motion.span
+              initial={{ y: 0 }}
+              animate={reduceMotion ? { y: 0 } : { y: [0, 5, 0] }}
+              transition={
+                reduceMotion
+                  ? undefined
+                  : { duration: 1.8, repeat: Infinity, ease: "easeInOut" }
+              }
             >
-              {tech}
-            </span>
-          ))}
+              <ChevronDown size={22} />
+            </motion.span>
+          </a>
         </motion.div>
       </motion.div>
     </section>
