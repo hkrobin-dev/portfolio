@@ -101,9 +101,27 @@ export const api = {
       throw new Error("Could not reach the server to upload the image.");
     }
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.message || "Upload failed.");
-    return data;
+    // A failed route can return an HTML error page instead of JSON (e.g. the
+    // platform rejecting the request before our handler runs). Parsing that
+    // throws a raw SyntaxError, which would surface as a confusing message
+    // about JSON rather than about the upload.
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* not JSON — fall through to the status-based message below */
+    }
+
+    if (!res.ok) {
+      throw new Error(
+        data?.message ||
+          (res.status === 413
+            ? "That image is too large. Please pick one under 4 MB."
+            : `Upload failed (HTTP ${res.status}). Check the browser Network tab.`)
+      );
+    }
+    if (!data?.url) throw new Error("Upload succeeded but returned no image URL.");
+    return data as { url: string };
   },
 };
 

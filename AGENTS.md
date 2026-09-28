@@ -322,34 +322,40 @@ bg-primary  text-primary  from-primary  to-secondary  bg-accent
 8. `BLOB_READ_WRITE_TOKEN` must exist in Vercel (Storage tab) or image upload 500s at runtime
    with a clear message. `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `JWT_SECRET` are
    all required in Vercel env — `.env.local` is gitignored, so nothing carries over from local.
+9. **The Blob store's Access setting must be Public.** `upload/route.ts` calls `put()` with
+   `access: "public"`, and a store created as Private rejects it with *"Cannot use public
+   access on a private store"*. This is not cosmetic: images are rendered by plain `<img>`
+   tags that send no auth header, so private blobs (which need expiring signed URLs) would not
+   display. Fix is Vercel → Storage → the store → Settings → Access → Public, then redeploy.
+   Adding a token to `.env.local` is not enough — the store setting lives in Vercel.
 
 ### Codebase
 
-9. **`import "server-only"` guards the server layer.** It sits at the top of `lib/server/auth.ts`,
-   `http.ts` and `db/index.ts`, so a client component that imports them fails `next build`
-   with "You're importing a component that needs server-only" instead of shipping secrets to
-   the browser. Add it to any new module a route handler imports.
-10. **Do not add `src/middleware.ts` to guard `/admin`.** The JWT lives in `localStorage`,
+10. **`import "server-only"` guards the server layer.** It sits at the top of `lib/server/auth.ts`,
+    `http.ts` and `db/index.ts`, so a client component that imports them fails `next build`
+    with "You're importing a component that needs server-only" instead of shipping secrets to
+    the browser. Add it to any new module a route handler imports.
+11. **Do not add `src/middleware.ts` to guard `/admin`.** The JWT lives in `localStorage`,
     which middleware cannot read, so it would either be useless or give a false sense of
     protection. Admin gating is client-side (`AuthContext`) plus `requireAdmin` per route.
     Moving to an httpOnly cookie is a real auth rewrite, not a drop-in.
-11. **Adding a column to an existing table won't apply on a deployed DB.**
+12. **Adding a column to an existing table won't apply on a deployed DB.**
     `schema.ts` only runs `CREATE TABLE IF NOT EXISTS`. For a new column you must add an
     idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statement.
-12. **Bulk-replace means IDs matter.** `replace*` regenerates an id when the item has none
+13. **Bulk-replace means IDs matter.** `replace*` regenerates an id when the item has none
     (`proj-${Date.now()}-${order}`), which breaks `/projects/[id]` and `/blog/[id]` links.
     Always assign a stable `id` when creating items (`newProject()` does this).
-13. **The contact form does not use the backend.** `components/Contact.tsx` composes a
+14. **The contact form does not use the backend.** `components/Contact.tsx` composes a
     `mailto:` link. The nodemailer endpoint (`POST /api/contact`) exists but is unwired.
-14. `src/app/admin/login/page.tsx` calls `router.replace()` during render (existing smell).
-15. `resolveMediaUrl` prefixes `API_URL` for legacy `/uploads/...` paths; Vercel Blob URLs pass
+15. `src/app/admin/login/page.tsx` calls `router.replace()` during render (existing smell).
+16. `resolveMediaUrl` prefixes `API_URL` for legacy `/uploads/...` paths; Vercel Blob URLs pass
     through untouched. `/images/...` and `http...` are returned as-is. Nothing writes to
     `/uploads` any more — it is kept only so old database rows still resolve.
-16. `SiteContext.refresh()`'s `Promise.all` is a hardcoded list — forgetting to register a new
+17. `SiteContext.refresh()`'s `Promise.all` is a hardcoded list — forgetting to register a new
     collection there means the admin panel can't load it.
-17. `tailwind.config.ts` `content` globs cover `src/app/**` and `src/components/**` only —
+18. `tailwind.config.ts` `content` globs cover `src/app/**` and `src/components/**` only —
     new component locations need a glob update.
-18. No automated tests. `npm run lint` and `npx tsc --noEmit` are the available checks, plus
+19. No automated tests. `npm run lint` and `npx tsc --noEmit` are the available checks, plus
     the manual round-trip: hit a `GET`, `PUT` the identical payload back, and confirm the
     `GET` is unchanged.
 

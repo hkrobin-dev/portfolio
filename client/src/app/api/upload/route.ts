@@ -31,16 +31,30 @@ export async function POST(req: Request) {
     );
   }
 
-  let file: FormDataEntryValue | null = null;
+  // Duck-typed rather than `instanceof File`.
+  //
+  // `Request.formData()` hands back undici's own File class, which is not the
+  // same object as Node's `File` global. On Node 20+ they line up, but on
+  // Node 18 `File` is not a global at all — `instanceof` would throw a
+  // ReferenceError, and because this check sat outside the try/catch that
+  // turned into a generic HTML 500 page instead of the JSON the client parses.
+  // Checking for the methods we actually call works on every runtime.
+  let entry: FormDataEntryValue | null = null;
   try {
-    file = (await req.formData()).get("image");
+    entry = (await req.formData()).get("image");
   } catch {
     return Response.json({ message: "No file uploaded." }, { status: 400 });
   }
 
-  if (!(file instanceof File)) {
+  if (
+    !entry ||
+    typeof entry === "string" ||
+    typeof (entry as Blob).arrayBuffer !== "function"
+  ) {
     return Response.json({ message: "No file uploaded." }, { status: 400 });
   }
+
+  const file = entry as File;
 
   if (!/^image\//.test(file.type)) {
     return Response.json({ message: "Only image files are allowed." }, { status: 400 });
@@ -62,6 +76,9 @@ export async function POST(req: Request) {
       .webp({ quality: 82 })
       .toBuffer();
 
+    // `access` must match how the Blob store itself is configured. A store set
+    // to Private rejects this with "Cannot use public access on a private
+    // store" — see the note below on why public is the right choice here.
     const blob = await put(filename, processed, {
       access: "public",
       contentType: "image/webp",
@@ -70,6 +87,22 @@ export async function POST(req: Request) {
     return Response.json({ url: blob.url });
   } catch (err) {
     console.error("Image processing/upload failed:", err);
+
+    // Blob failures are almost always a store misconfiguration rather than a
+    // bad file, and the generic message used to send people hunting for a
+    // corrupt image that was fine. Pass the provider's own wording through.
+    const raw = err instanceof Error ? err.message : String(err);
+    if (/blob|store|access denied|private store/i.test(raw)) {
+      return Response.json(
+        {
+          message:
+            "Image storage rejected the upload. In Vercel, open Storage → your Blob store → Settings and switch Access to Public, then redeploy.",
+          detail: raw,
+        },
+        { status: 500 }
+      );
+    }
+
     return Response.json(
       { message: "Could not process the image. Try a different file." },
       { status: 500 }
